@@ -63,24 +63,39 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
           COLLECTION_START_EPOCH: ${{ vars.COLLECTION_START_EPOCH }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           python - <<'PYEOF'
-          import time, subprocess, os, sys
+          import time, os, urllib.request, json, sys
 
           start = int(os.environ.get("COLLECTION_START_EPOCH", "0"))
           if start == 0:
-              print("No start epoch set — stopping.")
+              print("No start epoch — stopping.")
               sys.exit(0)
 
           elapsed_hours = (time.time() - start) / 3600
           print(f"Elapsed: {elapsed_hours:.1f}h / 72h")
 
-          if elapsed_hours < 72:
-              print("Triggering next job...")
-              subprocess.run(
-                  ["gh", "workflow", "run", "collect_data.yml"],
-                  check=True
-              )
-          else:
+          if elapsed_hours >= 72:
               print("72h complete — collection finished!")
+              sys.exit(0)
+
+          print("Triggering next 6h job via GitHub API...")
+          repo  = os.environ["GITHUB_REPOSITORY"]
+          token = os.environ["GH_TOKEN"]
+
+          url  = f"https://api.github.com/repos/{repo}/actions/workflows/collect_data.yml/dispatches"
+          data = json.dumps({"ref": "main"}).encode()
+          req  = urllib.request.Request(url, data=data, method="POST")
+          req.add_header("Authorization", f"Bearer {token}")
+          req.add_header("Accept", "application/vnd.github+json")
+          req.add_header("Content-Type", "application/json")
+
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print(f"Next job triggered. Status: {resp.status}")
+          except urllib.error.HTTPError as e:
+              print(f"Failed to trigger: {e.code} {e.reason}")
+              print(e.read().decode())
+              sys.exit(1)
           PYEOF
