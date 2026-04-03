@@ -1,11 +1,7 @@
 name: Collect Traffic Data
 
 on:
-  workflow_dispatch:    # Triggered manually once — chains itself
-
-env:
-  COLLECTION_HOURS: 72   # 3 days
-  JOB_DURATION_MIN: 340  # Stay under GH's 6-hour (360-min) job limit
+  workflow_dispatch:
 
 jobs:
   collect:
@@ -24,19 +20,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install requests pandas dvc pyyaml
+        run: pip install requests pandas pyyaml
 
-      - name: Configure DVC remote (GDrive)
-        env:
-          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS }}
-        run: |
-          dvc remote modify myremote \
-            gdrive_use_service_account true || true
-
-      - name: Pull existing raw data
-        run: dvc pull data/raw/traffic_raw.csv || true
-
-      - name: Run 340-minute collection loop
+      - name: Run collection loop (6 hours)
         env:
           TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
         run: |
@@ -45,43 +31,35 @@ jobs:
           logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
           log = logging.getLogger()
 
-          interval  = 300          # 5 minutes
-          max_secs  = 340 * 60     # job window
-          end_time  = time.time() + max_secs
-          snapshot  = 0
+          interval = 300
+          end_time = time.time() + (340 * 60)
+          snapshot = 0
 
           while time.time() < end_time:
               snapshot += 1
-              log.info("─── Snapshot #%d @ %s ───", snapshot, datetime.datetime.utcnow().isoformat())
+              log.info("Snapshot #%d @ %s", snapshot, datetime.datetime.utcnow().isoformat())
               t0 = time.time()
               subprocess.run(["python", "src/collect.py"], check=True)
               elapsed = time.time() - t0
               sleep_for = max(0, interval - elapsed)
-              remaining = end_time - time.time()
-              if remaining < interval:
-                  log.info("Job window ending. Last snapshot done.")
+              if (end_time - time.time()) < interval:
+                  log.info("Job window ending.")
                   break
-              log.info("Sleeping %.0fs ...", sleep_for)
               time.sleep(sleep_for)
 
-          log.info("Loop complete. %d snapshots collected.", snapshot)
+          log.info("Done. %d snapshots.", snapshot)
           PYEOF
 
-      - name: DVC add + push
-        run: |
-          dvc add data/raw/traffic_raw.csv
-          dvc push
-
-      - name: Commit DVC pointer
+      - name: Commit collected data to repo
         run: |
           git config user.email "actions@github.com"
           git config user.name  "GitHub Actions"
-          git add data/raw/traffic_raw.csv.dvc
+          git add data/raw/traffic_raw.csv
           git diff --staged --quiet || \
-            git commit -m "data: snapshot batch $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git commit -m "data: batch $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           git push
 
-      - name: Chain next job if still within 72h window
+      - name: Chain next job if within 72h window
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
           COLLECTION_START_EPOCH: ${{ vars.COLLECTION_START_EPOCH }}
@@ -91,20 +69,18 @@ jobs:
 
           start = int(os.environ.get("COLLECTION_START_EPOCH", "0"))
           if start == 0:
-              print("COLLECTION_START_EPOCH not set — stopping chain.")
+              print("No start epoch set — stopping.")
               sys.exit(0)
 
           elapsed_hours = (time.time() - start) / 3600
-          limit_hours   = int(os.environ.get("COLLECTION_HOURS", "72"))
+          print(f"Elapsed: {elapsed_hours:.1f}h / 72h")
 
-          print(f"Elapsed: {elapsed_hours:.1f}h / {limit_hours}h")
-
-          if elapsed_hours < limit_hours:
-              print("Triggering next 6-hour job...")
+          if elapsed_hours < 72:
+              print("Triggering next job...")
               subprocess.run(
                   ["gh", "workflow", "run", "collect_data.yml"],
                   check=True
               )
           else:
-              print("72h complete — collection finished! Run retrain workflow next.")
+              print("72h complete — collection finished!")
           PYEOF
