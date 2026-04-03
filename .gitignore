@@ -6,20 +6,8 @@ __pycache__/
 venv/
 .venv/
 
-# Ignore the actual data files
-data/raw/*.csv
-data/processed/*.csv
-
-# But allow DVC pointer files and gitkeep
-!data/raw/*.dvc
-!data/processed/*.dvc
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-
-# Models — tracked via DVC
+# Models
 models/*.pkl
-!models/*.dvc
-!models/.gitkeep
 
 # MLflow
 mlruns/
