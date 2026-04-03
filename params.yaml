@@ -1,0 +1,45 @@
+# Central config — DVC and train.py both read from here
+collection:
+  interval_seconds: 300        # 5 minutes
+  loop_duration_minutes: 340   # one GitHub Actions job window
+  api_timeout: 10
+
+waypoints:
+  - name: marienplatz
+    lat: 48.1374
+    lon: 11.5755
+  - name: schwabing
+    lat: 48.1642
+    lon: 11.5811
+  - name: sendlinger_tor
+    lat: 48.1339
+    lon: 11.5668
+  - name: a9_north
+    lat: 48.2200
+    lon: 11.6100
+  - name: a8_east
+    lat: 48.1200
+    lon: 11.7500
+  - name: pasing
+    lat: 48.1497
+    lon: 11.4617
+  - name: neuperlach
+    lat: 48.0996
+    lon: 11.6302
+  - name: mittlerer_ring
+    lat: 48.1200
+    lon: 11.5500
+
+paths:
+  raw: data/raw/traffic_raw.csv
+  processed: data/processed/traffic_features.csv
+  model: models/model.pkl
+
+labeling:
+  free_flow_threshold: 0.85   # speed_ratio >= this → free_flow
+  moderate_threshold: 0.60    # speed_ratio >= this → moderate, else congested
+
+training:
+  test_size: 0.20
+  random_state: 42
+  n_estimators: 200

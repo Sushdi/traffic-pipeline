@@ -1,0 +1,62 @@
+name: Retrain and Deploy
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # 3 AM UTC every night after initial collection
+  workflow_dispatch:
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Pull latest data and model
+        run: dvc pull
+
+      - name: Preprocess
+        run: python src/preprocess.py
+
+      - name: Train
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        run: python src/train.py
+
+      - name: DVC push new model
+        run: |
+          dvc add models/model.pkl
+          dvc add data/processed/traffic_features.csv
+          dvc push
+
+      - name: Commit updated DVC pointers + metrics
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name  "GitHub Actions"
+          git add models/model.pkl.dvc \
+                  data/processed/traffic_features.csv.dvc \
+                  metrics/scores.json
+          git diff --staged --quiet || \
+            git commit -m "model: retrain $(date -u +'%Y-%m-%d')"
+          git push
+
+      - name: Build Docker image
+        run: docker build -t traffic-api:latest .
+
+      # Uncomment when you have a registry:
+      # - name: Push to registry
+      #   run: |
+      #     docker tag traffic-api:latest your-registry/traffic-api:latest
+      #     docker push your-registry/traffic-api:latest

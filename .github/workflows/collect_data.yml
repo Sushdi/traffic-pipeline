@@ -1,0 +1,110 @@
+name: Collect Traffic Data
+
+on:
+  workflow_dispatch:    # Triggered manually once — chains itself
+
+env:
+  COLLECTION_HOURS: 72   # 3 days
+  JOB_DURATION_MIN: 340  # Stay under GH's 6-hour (360-min) job limit
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pandas dvc pyyaml
+
+      - name: Configure DVC remote (GDrive)
+        env:
+          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS }}
+        run: |
+          dvc remote modify myremote \
+            gdrive_use_service_account true || true
+
+      - name: Pull existing raw data
+        run: dvc pull data/raw/traffic_raw.csv || true
+
+      - name: Run 340-minute collection loop
+        env:
+          TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
+        run: |
+          python - <<'PYEOF'
+          import subprocess, time, datetime, logging
+          logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+          log = logging.getLogger()
+
+          interval  = 300          # 5 minutes
+          max_secs  = 340 * 60     # job window
+          end_time  = time.time() + max_secs
+          snapshot  = 0
+
+          while time.time() < end_time:
+              snapshot += 1
+              log.info("─── Snapshot #%d @ %s ───", snapshot, datetime.datetime.utcnow().isoformat())
+              t0 = time.time()
+              subprocess.run(["python", "src/collect.py"], check=True)
+              elapsed = time.time() - t0
+              sleep_for = max(0, interval - elapsed)
+              remaining = end_time - time.time()
+              if remaining < interval:
+                  log.info("Job window ending. Last snapshot done.")
+                  break
+              log.info("Sleeping %.0fs ...", sleep_for)
+              time.sleep(sleep_for)
+
+          log.info("Loop complete. %d snapshots collected.", snapshot)
+          PYEOF
+
+      - name: DVC add + push
+        run: |
+          dvc add data/raw/traffic_raw.csv
+          dvc push
+
+      - name: Commit DVC pointer
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name  "GitHub Actions"
+          git add data/raw/traffic_raw.csv.dvc
+          git diff --staged --quiet || \
+            git commit -m "data: snapshot batch $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          git push
+
+      - name: Chain next job if still within 72h window
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          COLLECTION_START_EPOCH: ${{ vars.COLLECTION_START_EPOCH }}
+        run: |
+          python - <<'PYEOF'
+          import time, subprocess, os, sys
+
+          start = int(os.environ.get("COLLECTION_START_EPOCH", "0"))
+          if start == 0:
+              print("COLLECTION_START_EPOCH not set — stopping chain.")
+              sys.exit(0)
+
+          elapsed_hours = (time.time() - start) / 3600
+          limit_hours   = int(os.environ.get("COLLECTION_HOURS", "72"))
+
+          print(f"Elapsed: {elapsed_hours:.1f}h / {limit_hours}h")
+
+          if elapsed_hours < limit_hours:
+              print("Triggering next 6-hour job...")
+              subprocess.run(
+                  ["gh", "workflow", "run", "collect_data.yml"],
+                  check=True
+              )
+          else:
+              print("72h complete — collection finished! Run retrain workflow next.")
+          PYEOF

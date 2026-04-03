@@ -1,0 +1,32 @@
+# Data collection & processing
+requests
+pandas
+numpy
+
+# Models
+xgboost
+lightgbm
+scikit-learn
+
+# Experiment tracking
+mlflow
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+
+# Serialization
+joblib
+
+# Data versioning
+dvc
+dvc-gdrive        # swap for dvc-s3 if using S3
+
+# Monitoring
+prometheus-client
+
+# Visualization (optional, for notebooks)
+matplotlib
+seaborn
+folium

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# Data — only track .dvc pointer files, never the raw data
+data/raw/
+data/processed/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Models — tracked via DVC
+models/
+!models/.gitkeep
+
+# MLflow
+mlruns/
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+*.log
