@@ -4,3 +4,5 @@
 ['remote "myremote"']
     url = gdrive://1SIJ2A8x7nkrixDyE4ozB21BlXTyQ0aUt
     gdrive_acknowledge_abuse = true
+    gdrive_use_service_account = true
+    gdrive_service_account_json_file_path = C:\Users\Diya\Desktop\gdrive-key.json
