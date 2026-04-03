@@ -6,9 +6,13 @@ __pycache__/
 venv/
 .venv/
 
-# Data — only track .dvc pointer files, never the raw data
-data/raw/
-data/processed/
+# Ignore the actual data files
+data/raw/*.csv
+data/processed/*.csv
+
+# But allow DVC pointer files and gitkeep
+!data/raw/*.dvc
+!data/processed/*.dvc
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 
