@@ -32,7 +32,7 @@ jobs:
           log = logging.getLogger()
 
           interval = 300
-          end_time = time.time() + (340 * 60)
+          end_time = time.time() + (2 * 60)
           snapshot = 0
 
           while time.time() < end_time:
