@@ -17,7 +17,8 @@ data/processed/*.csv
 !data/processed/.gitkeep
 
 # Models — tracked via DVC
-models/
+models/*.pkl
+!models/*.dvc
 !models/.gitkeep
 
 # MLflow
