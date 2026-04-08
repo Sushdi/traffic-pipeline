@@ -25,8 +25,9 @@ jobs:
         run: python src/preprocess.py
 
       - name: Train
+        env:
+          MLFLOW_TRACKING_URI: "file:///tmp/mlruns"
         run: python src/train.py
-
       - name: Commit updated model and metrics
         run: |
           git config user.email "actions@github.com"
