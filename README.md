@@ -1,44 +1,41 @@
 # Munich Traffic Congestion Predictor
 
-A full MLOps pipeline that collects real-time traffic data from the TomTom API, 
-trains a machine learning model to predict congestion levels, and serves predictions 
-through a REST API and interactive dashboard.
+#### A full MLOps pipeline that collects real-time traffic data from the TomTom API, trains a machine learning model to predict congestion levels, and serves predictions through a REST API and interactive dashboard.
 ---
 
 ## Pipeline overview
 
-TomTom API → Data Collection → Feature Engineering → Model Training → FastAPI → Dashboard
-(GitHub Actions)    (preprocess.py)     (train.py)     (Docker)  (Streamlit)
+#### TomTom API → Data Collection → Feature Engineering → Model Training → FastAPI → Dashboard (GitHub Actions)    (preprocess.py)     (train.py)     (Docker)  (Streamlit)
 ---
 
 ## Project structure
 
 traffic-pipeline/
-├── .github/workflows/
-│   ├── collect_data.yml     # Runs every 5 min for 3 days, auto-chains
-│   └── retrain.yml          # Nightly model retraining at 3AM UTC
+├── .github/
+│   └── workflows/
+│       ├── collect_data.yml     # Runs every 5 min for 3 days, auto-chains
+│       └── retrain.yml          # Nightly model retraining at 3AM UTC
 ├── data/
-│   ├── raw/                 # Raw TomTom API data (appended every 5 min)
-│   └── processed/           # Feature-engineered dataset
+│   ├── raw/                     # Raw TomTom API data (appended every 5 min)
+│   └── processed/               # Feature-engineered dataset
 ├── models/
-│   └── model.pkl            # Trained model bundle (LightGBM)
+│   └── model.pkl                # Trained model bundle (LightGBM)
 ├── metrics/
-│   └── scores.json          # F1, AUC, log loss scores
+│   └── scores.json              # F1, AUC, log loss scores
 ├── monitoring/
-│   └── prometheus.yml       # Prometheus scrape config
+│   └── prometheus.yml           # Prometheus scrape config
 ├── src/
-│   ├── collect.py           # TomTom API collector (8 Munich waypoints)
-│   ├── preprocess.py        # Feature engineering pipeline
-│   ├── train.py             # Trains RF / XGBoost / LightGBM + MLflow
-│   ├── live_predict.py      # Sends live TomTom data to /predict
-│   ├── make_fake_data.py    # Generates synthetic data for testing
+│   ├── collect.py               # TomTom API collector (8 Munich waypoints)
+│   ├── preprocess.py            # Feature engineering pipeline
+│   ├── train.py                 # Trains RF / XGBoost / LightGBM + MLflow
+│   ├── live_predict.py          # Sends live TomTom data to /predict
+│   ├── make_fake_data.py        # Generates synthetic data for testing
 │   └── api/
-│       └── main.py          # FastAPI app
-├── dashboard.py             # Streamlit dashboard
-├── params.yaml              # Central config (waypoints, thresholds, paths)
-├── dvc.yaml                 # DVC pipeline stages (not using DVC for now no need)
-├── Dockerfile               # API container
-├── docker-compose.yml       # API + Prometheus
+│       └── main.py              # FastAPI app
+├── dashboard.py                 # Streamlit dashboard
+├── params.yaml                  # Central config (waypoints, thresholds, paths)
+├── Dockerfile                   # API container
+├── docker-compose.yml           # API + Prometheus
 └── requirements.txt
 
 ---
@@ -139,11 +136,11 @@ streamlit run dashboard.py
 ```
 
 Dashboard tabs:
-- **🗺️ Live Traffic Map** — Folium heatmap + live predictions for all 8 locations
-- **📊 Model Performance** — Confusion matrix, ROC-AUC, Precision-Recall curves
-- **🔍 Feature Analysis** — Feature importance, speed distributions, hourly patterns
-- **📈 Historical Trends** — Speed over time, day-of-week breakdown, weekend vs weekday
-- **⚖️ Now vs Usual** — Current traffic vs historical average for same hour + day type
+- **Live Traffic Map** — Folium heatmap + live predictions for all 8 locations
+- **Model Performance** — Confusion matrix, ROC-AUC, Precision-Recall curves
+- **Feature Analysis** — Feature importance, speed distributions, hourly patterns
+- **Historical Trends** — Speed over time, day-of-week breakdown, weekend vs weekday
+- **Now vs Usual** — Current traffic vs historical average for same hour + day type
 
 ---
 
