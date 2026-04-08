@@ -19,9 +19,11 @@ pydantic
 # Serialization
 joblib
 
-# Data versioning
-dvc
-dvc-gdrive        # swap for dvc-s3 if using S3
+# Dashboard
+streamlit
+streamlit-folium
+folium
+plotly
 
 # Monitoring
 prometheus-client
@@ -29,4 +31,6 @@ prometheus-client
 # Visualization (optional, for notebooks)
 matplotlib
 seaborn
-folium
+
+# Utilities
+pyyaml
