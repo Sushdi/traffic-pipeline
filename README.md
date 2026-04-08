@@ -11,8 +11,11 @@
 ## Project structure
 
 traffic-pipeline/
+
 ├── .github/
+
 │   └── workflows/
+
 │       ├── collect_data.yml     # Runs every 5 min for 3 days, auto-chains
 │       └── retrain.yml          # Nightly model retraining at 3AM UTC
 ├── data/
