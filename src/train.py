@@ -124,7 +124,7 @@ def train():
     )
 
     log.info("Train: %d  Test: %d  Classes: %s", len(X_train), len(X_test), list(le.classes_))
-
+    mlflow.set_tracking_uri("file:///tmp/mlruns")
     mlflow.set_experiment("traffic-congestion-munich")
 
     best = {"f1": 0.0, "model": None, "name": "", "le": le}
