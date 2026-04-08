@@ -80,8 +80,6 @@ class TrafficFeatures(BaseModel):
     free_flow_speed:       float = Field(..., gt=0)
     current_travel_time:   float = Field(..., ge=0)
     free_flow_travel_time: float = Field(..., gt=0)
-    speed_ratio:           float = Field(..., ge=0)
-    travel_time_ratio:     float = Field(..., ge=0)
     confidence:            float = Field(..., ge=0, le=1)
     road_closure:          int   = Field(..., ge=0, le=1)
     frc_code:              int   = Field(..., ge=0, le=7)
@@ -90,16 +88,12 @@ class TrafficFeatures(BaseModel):
     speed_lag_3:  float
     speed_lag_6:  float
     speed_lag_12: float
-    ratio_lag_1:  float
-    ratio_lag_3:  float
-    ratio_lag_6:  float
     # Rolling features
     speed_roll_mean_6:  float
     speed_roll_mean_12: float
     speed_roll_std_6:   float
     tt_ratio_roll_6:    float
     speed_trend:        float
-
 
 class PredictionResponse(BaseModel):
     congestion_level: str
