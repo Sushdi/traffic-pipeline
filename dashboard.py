@@ -25,10 +25,117 @@ _API_KEY_ENV = os.environ.get("TOMTOM_API_KEY", "")
 # ── Config ────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Munich Traffic Intelligence",
-    page_icon="🚦",
+    page_icon=":material/analytics:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Main Background adjustments */
+    .stApp {
+        background-color: #F8FAFC !important;
+        background-image: radial-gradient(#CBD5E1 1px, transparent 1px);
+        background-size: 24px 24px;
+    }
+
+    /* Metric Cards */
+    [data-testid="stMetric"] {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        padding: 16px 24px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s;
+    }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    /* Primary Buttons */
+    .stButton > button[kind="primary"] {
+        background: #F5F5F5;
+        color: white;
+        border-radius: 8px;
+        border: none;
+        padding: 10px 24px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+    .stButton > button[kind="primary"]:hover {
+        background: #ced5e1;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        border: none !important;
+        color: white !important;
+    }
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: #FFFFFF;
+        padding: 6px;
+        border-radius: 10px;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        border: 1px solid #E2E8F0;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 44px;
+        border-radius: 6px;
+        padding: 0 20px;
+        color: #64748B;
+        font-weight: 500;
+        background-color: transparent;
+        border: none !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #F1F5F9 !important;
+        color: #0F172A !important;
+        font-weight: 600;
+    }
+    
+    /* Metric styling */
+    [data-testid="stMetricLabel"] {
+        font-weight: 500;
+        color: #64748B;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0F172A;
+    }
+    [data-testid="stMetricDelta"] {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    /* Headers */
+    h1, h2, h3, h4 {
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 600 !important;
+        color: #0F172A;
+        letter-spacing: -0.5px;
+    }
+    
+    [data-testid="stMarkdownContainer"] p {
+        color: #475569;
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #FFFFFF;
+        border-right: 1px solid #E2E8F0;
+    }
+    
+</style>
+""", unsafe_allow_html=True)
 
 with open("params.yaml") as f:
     CFG = yaml.safe_load(f)
@@ -70,7 +177,7 @@ FEATS  = bundle["features"]
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🚦 Munich Traffic")
+    st.markdown("## :material/directions_car: Munich Traffic")
     st.markdown("---")
 
     selected_location = st.selectbox(
@@ -97,11 +204,11 @@ with st.sidebar:
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🗺️ Live Traffic Map",
-    "📊 Model Performance",
-    "🔍 Feature Analysis",
-    "📈 Historical Trends",
-    "⚖️ Now vs Usual",
+    ":material/map: Live Traffic Map",
+    ":material/analytics: Model Performance",
+    ":material/search: Feature Analysis",
+    ":material/history: Historical Trends",
+    ":material/compare_arrows: Now vs Usual",
 ])
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -161,7 +268,7 @@ with tab1:
 
     col_btn, col_time = st.columns([1, 3])
     with col_btn:
-        fetch_live = st.button("🔄 Fetch live data", type="primary")
+        fetch_live = st.button("Fetch live data", icon=":material/refresh:", type="primary")
     with col_time:
         st.caption(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
 
@@ -204,7 +311,7 @@ with tab1:
     m = folium.Map(
         location=[48.1372, 11.5755],
         zoom_start=12,
-        tiles="CartoDB dark_matter",
+        tiles="CartoDB positron",
     )
 
     if results:
@@ -227,9 +334,9 @@ with tab1:
                     <b style='font-size:14px'>{r['name']}</b><br>
                     <span style='color:{color};font-size:13px'>⬤ {r['label'].replace('_',' ').title()}</span><br>
                     <hr style='margin:4px 0'>
-                    🚗 Speed: <b>{r['current_speed']} km/h</b><br>
-                    🏁 Free flow: <b>{r['free_flow_speed']} km/h</b><br>
-                    🎯 Confidence: <b>{r['confidence']}%</b>
+                    <b>Speed:</b> {r['current_speed']} km/h<br>
+                    <b>Free flow:</b> {r['free_flow_speed']} km/h<br>
+                    <b>Confidence:</b> {r['confidence']}%
                     </div>
                     """,
                     max_width=200,
@@ -251,9 +358,10 @@ with tab1:
         # Legend
         legend_html = """
         <div style="position:fixed;bottom:30px;left:30px;z-index:1000;
-                    background:rgba(20,20,20,0.85);padding:12px 16px;
-                    border-radius:8px;border:1px solid #444;color:white;
-                    font-family:sans-serif;font-size:13px">
+                    background:rgba(255,255,255,0.95);padding:12px 16px;
+                    border-radius:8px;border:1px solid #e2e8f0;color:#0f172a;
+                    font-family:sans-serif;font-size:13px;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             <b>Congestion level</b><br>
             <span style="color:#2ecc71">●</span> Free flow<br>
             <span style="color:#f39c12">●</span> Moderate<br>
@@ -269,9 +377,9 @@ with tab1:
         st.markdown("#### Live predictions")
         df_live = pd.DataFrame(results)
         df_live["status"] = df_live["label"].map({
-            "free_flow": "🟢 Free flow",
-            "moderate":  "🟡 Moderate",
-            "congested": "🔴 Congested",
+            "free_flow": "Free flow",
+            "moderate":  "Moderate",
+            "congested": "Congested",
         })
         df_live["speed_display"] = df_live.apply(
             lambda r: f"{r['current_speed']} / {r['free_flow_speed']} km/h", axis=1
@@ -288,9 +396,9 @@ with tab1:
         st.markdown("#### Summary")
         c1, c2, c3, c4 = st.columns(4)
         counts = pd.Series([r["label"] for r in results]).value_counts()
-        c1.metric("🟢 Free flow",  counts.get("free_flow", 0))
-        c2.metric("🟡 Moderate",   counts.get("moderate",  0))
-        c3.metric("🔴 Congested",  counts.get("congested", 0))
+        c1.metric("Free flow",  counts.get("free_flow", 0))
+        c2.metric("Moderate",   counts.get("moderate",  0))
+        c3.metric("Congested",  counts.get("congested", 0))
         c4.metric("Avg confidence", f"{np.mean([r['confidence'] for r in results]):.1f}%")
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -615,7 +723,7 @@ with tab5:
 
         if not live:
             st.info(
-                "No live data yet — go to **🗺️ Live Traffic Map** tab "
+                "No live data yet — go to **Live Traffic Map** tab "
                 "and click **Fetch live data** first, then come back here."
             )
         else:
@@ -634,7 +742,7 @@ with tab5:
             cols = st.columns(len(merged))
             for i, row in merged.iterrows():
                 delta = row["pct_change"]
-                arrow = "🔴 ▼" if delta < -5 else "🟡 ▼" if delta < 0 else "🟢 ▲"
+                arrow = "▼" if delta < 0 else "▲"
                 with cols[i]:
                     st.metric(
                         label=row["name"],
@@ -689,7 +797,7 @@ with tab5:
             col1, col2 = st.columns(2)
             with col1:
                 if len(slower):
-                    st.markdown("#### 🔴 Slower than usual")
+                    st.markdown("#### :material/trending_down: Slower than usual")
                     for _, r in slower.iterrows():
                         st.error(
                             f"**{r['name']}** — {r['current_speed']:.0f} km/h now "
@@ -701,7 +809,7 @@ with tab5:
 
             with col2:
                 if len(faster):
-                    st.markdown("#### 🟢 Faster than usual")
+                    st.markdown("#### :material/trending_up: Faster than usual")
                     for _, r in faster.iterrows():
                         st.success(
                             f"**{r['name']}** — {r['current_speed']:.0f} km/h now "
@@ -738,7 +846,7 @@ with tab5:
             fig_pattern.add_vline(
                 x=cur_hour,
                 line_dash="dash",
-                line_color="white",
+                line_color="#64748b",
                 opacity=0.5,
                 annotation_text=f"Now ({cur_hour:02d}:00)",
                 annotation_position="top",
