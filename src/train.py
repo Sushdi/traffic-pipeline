@@ -48,18 +48,17 @@ FEATURE_COLS = [
     "hour_sin", "hour_cos", "dow_sin", "dow_cos", "min_sin", "min_cos",
     # Peak flags
     "is_weekend", "is_peak_morning", "is_peak_evening",
-    # Raw flow
+    # Raw flow only — NO ratios, NO ratio lags
     "current_speed", "free_flow_speed",
     "current_travel_time", "free_flow_travel_time",
-    "speed_ratio", "travel_time_ratio",
     "confidence", "road_closure", "frc_code",
-    # Lags
+    # Speed lags only
     "speed_lag_1", "speed_lag_3", "speed_lag_6", "speed_lag_12",
-    "ratio_lag_1", "ratio_lag_3", "ratio_lag_6",
     # Rolling
     "speed_roll_mean_6", "speed_roll_mean_12", "speed_roll_std_6",
     "tt_ratio_roll_6", "speed_trend",
 ]
+
 TARGET = "congestion_level"
 
 MODELS = {

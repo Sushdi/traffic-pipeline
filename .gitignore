@@ -6,8 +6,10 @@ __pycache__/
 venv/
 .venv/
 
+
 # Models
-models/*.pkl
+!models/model.pkl
+!models/.gitkeep
 
 # MLflow
 mlruns/
