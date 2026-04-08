@@ -10,8 +10,8 @@
 
 ## Project structure
 
+```bash
 traffic-pipeline/
-
 ├── .github/
 │   └── workflows/
 │       ├── collect_data.yml     # Runs every 5 min for 3 days, auto-chains
@@ -38,7 +38,7 @@ traffic-pipeline/
 ├── Dockerfile                   # API container
 ├── docker-compose.yml           # API + Prometheus
 └── requirements.txt
-
+```
 ---
 
 ## Setup
