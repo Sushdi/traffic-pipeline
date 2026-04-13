@@ -41,9 +41,25 @@ st.markdown("""
     /* Main Background adjustments */
     .stApp {
         background-color: #F8FAFC !important;
-        background-image: radial-gradient(#CBD5E1 1px, transparent 1px);
-        background-size: 24px 24px;
+        background-image:
+            radial-gradient(circle at 16% 14%, rgba(34, 197, 94, 0.16), transparent 18%),
+            radial-gradient(circle at 82% 18%, rgba(249, 115, 22, 0.12), transparent 20%),
+            radial-gradient(circle at 50% 80%, rgba(239, 68, 68, 0.12), transparent 22%),
+            linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+            linear-gradient(0deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+            radial-gradient(#CBD5E1 1px, transparent 1px);
+        background-size:
+            180px 180px,
+            180px 180px,
+            220px 220px,
+            80px 80px,
+            80px 80px,
+            24px 24px;
+        background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, repeat;
+        background-position: center top, center top, center bottom, center, center, center;
     }
+    
+
 
     /* Metric Cards */
     [data-testid="stMetric"] {
@@ -216,7 +232,57 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ════════════════════════════════════════════════════════════════════════════
 with tab1:
     st.markdown("### Live Munich Traffic — Real-time predictions")
-
+    st.markdown("""
+<div style="position:relative; width:100%; height:180px; margin:16px 0 24px; border-radius:16px; overflow:hidden;">
+  <svg width="100%" viewBox="0 0 680 180" xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;">
+    <style>
+      .road{fill:#94a3b8;opacity:.13}.lane{stroke:#cbd5e1;stroke-width:2;stroke-dasharray:22 14;fill:none;opacity:.25}
+      .edge{stroke:#f1f5f9;stroke-width:1.5;fill:none;opacity:.2}.car-body{opacity:.12}
+      .tl-pole{stroke:#94a3b8;stroke-width:2;fill:none;opacity:.18}.tl-box{fill:#475569;opacity:.12}
+      .tl-red{fill:#ef4444;opacity:.22}.tl-amber{fill:#f59e0b;opacity:.22}.tl-green{fill:#22c55e;opacity:.22}
+      .crosswalk{fill:#e2e8f0;opacity:.14}.sign{fill:#64748b;opacity:.1}
+    </style>
+    <!-- Main road -->
+    <rect class="road" x="0" y="68" width="680" height="52"/>
+    <line class="edge" x1="0" y1="68" x2="680" y2="68"/>
+    <line class="edge" x1="0" y1="120" x2="680" y2="120"/>
+    <line class="lane" x1="0" y1="94" x2="680" y2="94"/>
+    <line x1="0" y1="79" x2="680" y2="79" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="14 20" fill="none" opacity=".15"/>
+    <line x1="0" y1="109" x2="680" y2="109" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="14 20" fill="none" opacity=".15"/>
+    <!-- Vertical road -->
+    <rect class="road" x="268" y="0" width="48" height="180" style="opacity:.1"/>
+    <line class="edge" x1="268" y1="0" x2="268" y2="180"/>
+    <line class="edge" x1="316" y1="0" x2="316" y2="180"/>
+    <line class="lane" x1="292" y1="0" x2="292" y2="60"/>
+    <line class="lane" x1="292" y1="128" x2="292" y2="180"/>
+    <!-- Crosswalk -->
+    <rect class="crosswalk" x="316" y="72" width="8" height="44"/>
+    <rect class="crosswalk" x="328" y="72" width="8" height="44"/>
+    <rect class="crosswalk" x="340" y="72" width="8" height="44"/>
+    <rect class="crosswalk" x="352" y="72" width="8" height="44"/>
+    <rect class="crosswalk" x="364" y="72" width="8" height="44"/>
+    <!-- Cars -->
+    <g class="car-body"><rect x="60" y="74" width="48" height="20" rx="4" fill="#3b82f6"/><rect x="68" y="70" width="32" height="10" rx="3" fill="#3b82f6"/><circle cx="70" cy="94" r="4" fill="#1e293b"/><circle cx="98" cy="94" r="4" fill="#1e293b"/></g>
+    <g class="car-body" transform="scale(-1,1) translate(-480,0)"><rect x="390" y="98" width="44" height="18" rx="4" fill="#64748b"/><rect x="398" y="94" width="28" height="10" rx="3" fill="#64748b"/><circle cx="398" cy="116" r="4" fill="#1e293b"/><circle cx="424" cy="116" r="4" fill="#1e293b"/></g>
+    <g class="car-body"><rect x="520" y="75" width="42" height="18" rx="4" fill="#475569"/><rect x="528" y="71" width="26" height="10" rx="3" fill="#475569"/><circle cx="530" cy="93" r="4" fill="#1e293b"/><circle cx="552" cy="93" r="4" fill="#1e293b"/></g>
+    <!-- Traffic lights -->
+    <line class="tl-pole" x1="248" y1="68" x2="248" y2="120"/>
+    <rect x="241" y="38" width="14" height="30" rx="2" class="tl-box"/>
+    <circle cx="248" cy="44" r="4" class="tl-red"/><circle cx="248" cy="53" r="4" class="tl-amber"/><circle cx="248" cy="62" r="4" class="tl-green"/>
+    <line class="tl-pole" x1="334" y1="68" x2="334" y2="40"/>
+    <rect x="327" y="10" width="14" height="30" rx="2" class="tl-box"/>
+    <circle cx="334" cy="16" r="4" class="tl-red"/><circle cx="334" cy="25" r="4" class="tl-amber"/><circle cx="334" cy="34" r="4" class="tl-green"/>
+    <line class="tl-pole" x1="590" y1="120" x2="590" y2="68"/>
+    <rect x="583" y="40" width="14" height="28" rx="2" class="tl-box"/>
+    <circle cx="590" cy="46" r="4" class="tl-red"/><circle cx="590" cy="54" r="4" class="tl-amber"/><circle cx="590" cy="62" r="4" class="tl-green"/>
+    <!-- Signs -->
+    <line x1="30" y1="68" x2="30" y2="40" stroke="#94a3b8" stroke-width="1.5" opacity=".14"/>
+    <rect class="sign" x="14" y="30" width="32" height="18" rx="3"/>
+    <line x1="640" y1="68" x2="640" y2="44" stroke="#94a3b8" stroke-width="1.5" opacity=".14"/>
+    <rect class="sign" x="624" y="34" width="32" height="18" rx="3"/>
+  </svg>
+</div>
+""", unsafe_allow_html=True)
     def fetch_tomtom(lat, lon, key):
         url = (
             "https://api.tomtom.com/traffic/services/4"
