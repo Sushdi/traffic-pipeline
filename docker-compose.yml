@@ -8,8 +8,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
-      - ./models:/app/models      # hot-swap models without rebuild
+      - ./models:/app/models          # hot-swap models without rebuild
       - ./params.yaml:/app/params.yaml
+      - ./monitoring:/app/monitoring  # eval_log.csv read by /metrics/drift
     restart: unless-stopped
 
   # Optional: Prometheus scrapes /metrics

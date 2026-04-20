@@ -1,5 +1,7 @@
 """
-Train multiple classifiers, track with MLflow, save the best model.
+Train multiple classifiers on the 15-minute-ahead traffic prediction task.
+The model learns to predict congestion_level at time T+15min using features
+collected at time T. Tracks experiments with MLflow, saves the best model.
 """
 
 import json
@@ -59,7 +61,8 @@ FEATURE_COLS = [
     "tt_ratio_roll_6", "speed_trend",
 ]
 
-TARGET = "congestion_level"
+# Model trained to predict 15 minutes ahead (3 steps × 5-min interval)
+TARGET = "target_15m"
 
 MODELS = {
     "random_forest": RandomForestClassifier(
@@ -117,6 +120,7 @@ def train():
 
     X = df[FEATURE_COLS].values
     le = LabelEncoder()
+    # Fit encoder on the FUTURE target labels (same classes, but explicit)
     y = le.fit_transform(df[TARGET])
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -182,11 +186,14 @@ def train():
     # Save best model
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     bundle = {
-        "model":         best["model"],
-        "label_encoder": best["le"],
-        "features":      FEATURE_COLS,
-        "best_model":    best["name"],
-        "best_f1":       best["f1"],
+        "model":              best["model"],
+        "label_encoder":      best["le"],
+        "features":           FEATURE_COLS,
+        "best_model":         best["name"],
+        "best_f1":            best["f1"],
+        "target":             TARGET,           # "target_15m"
+        "horizon_minutes":    15,               # what the model predicts ahead
+        "interval_seconds":   CFG["collection"]["interval_seconds"],
     }
     joblib.dump(bundle, MODEL_PATH)
     log.info("\n✓ Best: %s (F1=%.4f) → %s", best["name"], best["f1"], MODEL_PATH)

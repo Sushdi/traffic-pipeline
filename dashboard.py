@@ -160,6 +160,11 @@ WAYPOINTS  = CFG["waypoints"]
 MODEL_PATH = CFG["paths"]["model"]
 PROC_PATH  = CFG["paths"]["processed"]
 RAW_PATH   = CFG["paths"]["raw"]
+EVAL_LOG_PATH = CFG["paths"].get("eval_log", "monitoring/eval_log.csv")
+HORIZON_MINS  = (
+    CFG["collection"].get("prediction_horizon_steps", 3)
+    * CFG["collection"].get("interval_seconds", 300)
+) // 60  # = 15
 
 LOCATION_NAMES = [wp["name"].replace("_", " ").title() for wp in WAYPOINTS]
 LOCATION_MAP   = {
@@ -219,12 +224,13 @@ with st.sidebar:
     st.caption("Data: TomTom Flow API · Model: LightGBM")
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     ":material/map: Live Traffic Map",
     ":material/analytics: Model Performance",
     ":material/search: Feature Analysis",
     ":material/history: Historical Trends",
     ":material/compare_arrows: Now vs Usual",
+    ":material/monitoring: Prediction Accuracy & Drift",
 ])
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -989,4 +995,229 @@ with tab5:
     except Exception as e:
         st.error(f"Error loading comparison data: {e}")
         st.exception(e)
+# ════════════════════════════════════════════════════════════════════════════
+# TAB 6 — Prediction Accuracy & Drift
+# ════════════════════════════════════════════════════════════════════════════
+with tab6:
+    st.markdown(f"### {HORIZON_MINS}-Minute Ahead Prediction — Live Accuracy & Drift")
+    st.caption(
+        f"Predictions are made {HORIZON_MINS} min in advance by `src/evaluate_live.py` "
+        "(run every 5 min via cron). Each cycle fetches real TomTom data, "
+        "compares it to the stored prediction, and logs the result here."
+    )
 
+    @st.cache_data(ttl=60)
+    def load_eval_log():
+        if not os.path.exists(EVAL_LOG_PATH):
+            return pd.DataFrame()
+        df = pd.read_csv(EVAL_LOG_PATH, parse_dates=["eval_time"])
+        return df.sort_values("eval_time")
+
+    eval_df = load_eval_log()
+
+    if eval_df.empty:
+        st.info(
+            "⚠️ No evaluation data yet.\n\n"
+            "Run `src/evaluate_live.py` every 5 minutes to populate this tab. "
+            "After **15 minutes** the first accuracy measurement will appear."
+        )
+        st.code(
+            "# In a terminal (project root, every 5 min):\n"
+            "TOMTOM_API_KEY=<your_key> python src/evaluate_live.py",
+            language="bash",
+        )
+    else:
+        # ── KPI strip ─────────────────────────────────────────────────────
+        last  = eval_df.iloc[-1]
+        n_obs = len(eval_df)
+        prev_acc = eval_df["accuracy"].iloc[-2] if n_obs > 1 else None
+
+        st.markdown("#### At a glance")
+        k1, k2, k3, k4, k5 = st.columns(5)
+        k1.metric(
+            "Latest accuracy",
+            f"{last['accuracy']*100:.1f}%",
+            delta=(
+                f"{(last['accuracy'] - prev_acc)*100:+.1f}pp"
+                if prev_acc is not None else None
+            ),
+        )
+        k2.metric("Latest F1 (weighted)", f"{last['f1_weighted']:.4f}")
+        k3.metric("Evaluations logged",   n_obs)
+        k4.metric(
+            "Speed PSI (data drift)",
+            f"{last['speed_psi']:.4f}" if not np.isnan(last["speed_psi"]) else "N/A",
+            help="PSI < 0.10: stable | 0.10–0.20: moderate | > 0.20: significant drift",
+        )
+        k5.metric(
+            "Model confidence drift",
+            f"{last['model_drift_score']:.4f}" if not np.isnan(last["model_drift_score"]) else "N/A",
+            help="1 − avg max-probability. Higher = less confident / more drift.",
+        )
+
+        st.markdown("---")
+
+        # ── Accuracy over time ──────────────────────────────────────────────────
+        col_a, col_b = st.columns(2)
+
+        with col_a:
+            st.markdown(f"#### Live accuracy over time ({HORIZON_MINS}-min ahead)")
+            fig_acc = go.Figure()
+            fig_acc.add_trace(go.Scatter(
+                x=eval_df["eval_time"], y=eval_df["accuracy"] * 100,
+                mode="lines+markers", name="Accuracy %",
+                line=dict(color="#3498db", width=2.5),
+                marker=dict(size=6),
+                fill="tozeroy",
+                fillcolor="rgba(52,152,219,0.1)",
+            ))
+            fig_acc.add_hline(
+                y=eval_df["accuracy"].mean() * 100,
+                line_dash="dash", line_color="#2ecc71",
+                annotation_text=f"Mean {eval_df['accuracy'].mean()*100:.1f}%",
+                annotation_position="top right",
+            )
+            fig_acc.update_layout(
+                height=340, margin=dict(l=10, r=10, t=10, b=10),
+                yaxis=dict(title="Accuracy %", range=[0, 105]),
+                xaxis_title="Time",
+            )
+            st.plotly_chart(fig_acc, use_container_width=True)
+
+        with col_b:
+            st.markdown("#### F1-score (weighted) over time")
+            fig_f1 = go.Figure()
+            fig_f1.add_trace(go.Scatter(
+                x=eval_df["eval_time"], y=eval_df["f1_weighted"],
+                mode="lines+markers", name="F1",
+                line=dict(color="#9b59b6", width=2.5),
+                marker=dict(size=6),
+            ))
+            fig_f1.update_layout(
+                height=340, margin=dict(l=10, r=10, t=10, b=10),
+                yaxis=dict(title="Weighted F1", range=[0, 1.05]),
+                xaxis_title="Time",
+            )
+            st.plotly_chart(fig_f1, use_container_width=True)
+
+        # ── Label distribution: actual vs predicted ───────────────────────────
+        st.markdown("#### Predicted vs actual label distribution (cumulative)")
+        label_cols = ["free_flow", "moderate", "congested"]
+        actual_totals = [
+            eval_df[f"actual_{c}"].sum() for c in label_cols
+        ]
+        pred_totals = [
+            eval_df[f"pred_{c}"].sum() for c in label_cols
+        ]
+
+        fig_labels = go.Figure(data=[
+            go.Bar(
+                name="Actual",
+                x=label_cols, y=actual_totals,
+                marker_color=[COLORS[c] for c in label_cols],
+                opacity=0.9,
+            ),
+            go.Bar(
+                name="Predicted",
+                x=label_cols, y=pred_totals,
+                marker_color=[COLORS[c] for c in label_cols],
+                opacity=0.45,
+                marker_pattern_shape="/",
+            ),
+        ])
+        fig_labels.update_layout(
+            barmode="group", height=340,
+            margin=dict(l=10, r=10, t=10, b=10),
+            xaxis_title="Congestion class",
+            yaxis_title="Total readings",
+            legend=dict(x=0.01, y=0.99),
+        )
+        st.plotly_chart(fig_labels, use_container_width=True)
+
+        # ── Drift signals ─────────────────────────────────────────────────────
+        st.markdown("#### Drift monitoring")
+        col_d1, col_d2 = st.columns(2)
+
+        with col_d1:
+            st.markdown("##### Data drift — Speed PSI over time")
+            fig_psi = go.Figure()
+            fig_psi.add_trace(go.Scatter(
+                x=eval_df["eval_time"],
+                y=eval_df["speed_psi"],
+                mode="lines+markers", name="PSI",
+                line=dict(color="#e74c3c", width=2),
+                marker=dict(size=5),
+            ))
+            # PSI threshold bands
+            fig_psi.add_hrect(
+                y0=0, y1=0.10, fillcolor="#2ecc71", opacity=0.08,
+                annotation_text="Stable (PSI < 0.10)",
+                annotation_position="top left",
+            )
+            fig_psi.add_hrect(
+                y0=0.10, y1=0.20, fillcolor="#f39c12", opacity=0.08,
+                annotation_text="Moderate drift",
+                annotation_position="top left",
+            )
+            fig_psi.add_hrect(
+                y0=0.20, y1=1.0, fillcolor="#e74c3c", opacity=0.08,
+                annotation_text="Significant drift",
+                annotation_position="top left",
+            )
+            fig_psi.update_layout(
+                height=320, margin=dict(l=10, r=10, t=10, b=10),
+                yaxis_title="PSI", xaxis_title="Time",
+                yaxis=dict(rangemode="tozero"),
+            )
+            st.plotly_chart(fig_psi, use_container_width=True)
+
+        with col_d2:
+            st.markdown("##### Model drift — Confidence score over time")
+            st.caption(
+                "Model drift score = 1 − avg max-class probability. "
+                "A rising score means the model is becoming less certain "
+                "(possible concept drift)."
+            )
+            fig_drift = go.Figure()
+            fig_drift.add_trace(go.Scatter(
+                x=eval_df["eval_time"],
+                y=eval_df["model_drift_score"],
+                mode="lines+markers", name="Drift score",
+                line=dict(color="#e67e22", width=2),
+                marker=dict(size=5),
+                fill="tozeroy",
+                fillcolor="rgba(230,126,34,0.08)",
+            ))
+            # Uniform-random baseline (1/3 classes → score = 1 − 0.333 = 0.667)
+            fig_drift.add_hline(
+                y=0.667, line_dash="dot", line_color="#e74c3c",
+                annotation_text="Random-guess baseline",
+                annotation_position="top right",
+            )
+            fig_drift.update_layout(
+                height=320, margin=dict(l=10, r=10, t=10, b=10),
+                yaxis_title="Drift score", xaxis_title="Time",
+                yaxis=dict(range=[0, 0.8]),
+            )
+            st.plotly_chart(fig_drift, use_container_width=True)
+
+        # ── Raw log table ─────────────────────────────────────────────────────
+        with st.expander("Raw evaluation log"):
+            display_df = eval_df.copy()
+            display_df["accuracy"] = (display_df["accuracy"] * 100).round(1).astype(str) + "%"
+            display_df["f1_weighted"] = display_df["f1_weighted"].round(4)
+            st.dataframe(
+                display_df[["eval_time", "accuracy", "f1_weighted",
+                             "n_correct", "n_total", "speed_psi", "model_drift_score"]]
+                .rename(columns={
+                    "eval_time":         "Time",
+                    "accuracy":          "Accuracy",
+                    "f1_weighted":       "F1 (weighted)",
+                    "n_correct":         "Correct",
+                    "n_total":           "Total",
+                    "speed_psi":         "Speed PSI",
+                    "model_drift_score": "Drift score",
+                })
+                .sort_values("Time", ascending=False),
+                use_container_width=True, hide_index=True,
+            )

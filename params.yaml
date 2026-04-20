@@ -3,6 +3,8 @@ collection:
   interval_seconds: 300        # 5 minutes
   loop_duration_minutes: 340   # one GitHub Actions job window
   api_timeout: 10
+  # How many collection steps ahead we predict (3 steps × 5 min = 15 min)
+  prediction_horizon_steps: 3
 
 waypoints:
   - name: marienplatz
@@ -34,6 +36,9 @@ paths:
   raw: data/raw/traffic_raw.csv
   processed: data/processed/traffic_features.csv
   model: models/model.pkl
+  # Live evaluation outputs
+  predictions_db: monitoring/predictions_queue.db
+  eval_log: monitoring/eval_log.csv
 
 labeling:
   free_flow_threshold: 0.85   # speed_ratio >= this → free_flow

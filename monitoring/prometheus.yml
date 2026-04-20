@@ -2,7 +2,15 @@ global:
   scrape_interval: 30s
 
 scrape_configs:
+  # Prediction counters + latency histogram
   - job_name: "traffic-api"
     static_configs:
       - targets: ["api:8000"]
     metrics_path: /metrics
+
+  # Live accuracy & drift gauges (reads from monitoring/eval_log.csv)
+  - job_name: "traffic-drift"
+    static_configs:
+      - targets: ["api:8000"]
+    metrics_path: /metrics/drift
+    scrape_interval: 60s   # eval_log updates every 5 min; 60s is plenty

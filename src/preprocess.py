@@ -1,6 +1,10 @@
 """
 Feature engineering pipeline.
 Reads data/raw/traffic_raw.csv → writes data/processed/traffic_features.csv
+
+Key design: the target label is `target_15m`, which is the congestion_level
+3 timesteps in the future (3 × 5 min = 15 min).  The model therefore learns
+to predict what traffic will look like 15 minutes from now, not right now.
 """
 
 import os
@@ -55,13 +59,21 @@ def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def add_lag_and_rolling_features(df: pd.DataFrame) -> pd.DataFrame:
+def add_lag_and_rolling_features(df: pd.DataFrame, horizon_steps: int = 3) -> pd.DataFrame:
+    """Add lag/rolling features AND create the future target label.
+
+    Parameters
+    ----------
+    horizon_steps:
+        How many timesteps ahead the model should predict.
+        Default 3 → 3 × 5 min = 15 minutes.
+    """
     result_parts = []
 
     for loc_name, grp in df.groupby("location_name"):
         grp = grp.copy()
 
-        # Speed lags
+        # Speed lags (past → present)
         for lag, col in [(1, "speed_lag_1"), (3, "speed_lag_3"),
                          (6, "speed_lag_6"), (12, "speed_lag_12")]:
             grp[col] = grp["current_speed"].shift(lag)
@@ -79,13 +91,22 @@ def add_lag_and_rolling_features(df: pd.DataFrame) -> pd.DataFrame:
         # Speed trend
         grp["speed_trend"] = grp["current_speed"] - grp["speed_roll_mean_6"]
 
+        # ── Future target (15-min horizon) ──────────────────────────────────
+        # Shift the label BACKWARDS so the row at time T receives the label
+        # from time T + horizon_steps (i.e. what will happen 15 min from now).
+        grp["target_15m"] = grp["congestion_level"].shift(-horizon_steps)
+
         result_parts.append(grp)
 
     df = pd.concat(result_parts).sort_values(["location_name", "timestamp"])
 
     before = len(df)
-    df = df.dropna(subset=["speed_lag_12", "ratio_lag_6"])
-    log.info("Dropped %d warm-up rows (lag NaNs). %d remain.", before - len(df), len(df))
+    # Drop warm-up rows (missing past lags) AND tail rows (missing future label)
+    df = df.dropna(subset=["speed_lag_12", "ratio_lag_6", "target_15m"])
+    log.info(
+        "Dropped %d warm-up/tail rows (lag NaNs + future label NaNs). %d remain.",
+        before - len(df), len(df),
+    )
     return df.reset_index(drop=True)
 
 
@@ -97,13 +118,17 @@ def encode_frc(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def run():
+    # Read horizon from config (default 3 = 15 min at 5-min intervals)
+    horizon = CFG.get("collection", {}).get("prediction_horizon_steps", 3)
+
     df = load_raw()
     df = remove_outliers(df)
     df = add_time_features(df)
-    df = add_lag_and_rolling_features(df)
+    df = add_lag_and_rolling_features(df, horizon_steps=horizon)
     df = encode_frc(df)
 
-    log.info("Class distribution:\n%s", df["congestion_level"].value_counts())
+    log.info("Future target distribution (target_15m):\n%s", df["target_15m"].value_counts())
+    log.info("Current label distribution (congestion_level):\n%s", df["congestion_level"].value_counts())
 
     os.makedirs(os.path.dirname(PROC_PATH), exist_ok=True)
     df.to_csv(PROC_PATH, index=False)
