@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python dependencies first (layer caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir \
-    fastapi uvicorn pydantic joblib numpy \
+    fastapi uvicorn pydantic joblib numpy pandas \
     scikit-learn xgboost lightgbm \
     prometheus-client pyyaml
 
