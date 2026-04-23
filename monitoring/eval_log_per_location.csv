@@ -350,3 +350,11 @@ a8_east,free_flow,free_flow,65.0,1,2026-04-21T12:46:51.755006+00:00
 pasing,free_flow,free_flow,38.0,1,2026-04-21T12:46:51.755006+00:00
 neuperlach,congested,moderate,16.0,0,2026-04-21T12:46:51.755006+00:00
 mittlerer_ring,free_flow,free_flow,19.0,1,2026-04-21T12:46:51.755006+00:00
+marienplatz,moderate,free_flow,16.0,0,2026-04-23T06:29:33.780402+00:00
+schwabing,moderate,free_flow,16.0,0,2026-04-23T06:29:33.780402+00:00
+sendlinger_tor,free_flow,free_flow,25.0,1,2026-04-23T06:29:33.780402+00:00
+a9_north,free_flow,free_flow,128.0,1,2026-04-23T06:29:33.780402+00:00
+a8_east,free_flow,free_flow,65.0,1,2026-04-23T06:29:33.780402+00:00
+pasing,free_flow,free_flow,38.0,1,2026-04-23T06:29:33.780402+00:00
+neuperlach,moderate,free_flow,23.0,0,2026-04-23T06:29:33.780402+00:00
+mittlerer_ring,free_flow,free_flow,20.0,1,2026-04-23T06:29:33.780402+00:00

@@ -1,0 +1,79 @@
+@startuml System_Architecture
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam ArrowColor #444444
+skinparam ArrowThickness 2
+skinparam RoundCorner 10
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+skinparam component {
+  BackgroundColor #D6EAF8
+  BorderColor #2E86C1
+  FontColor #1A252F
+  FontStyle bold
+  FontSize 15
+}
+skinparam database {
+  BackgroundColor #FEF9E7
+  BorderColor #D4AC0D
+  FontColor #1A252F
+  FontStyle bold
+  FontSize 15
+}
+skinparam cloud {
+  BackgroundColor #FDEBD0
+  BorderColor #E67E22
+  FontColor #1A252F
+  FontStyle bold
+  FontSize 15
+}
+skinparam package {
+  FontSize 14
+  FontStyle bold
+  BorderColor #999999
+}
+
+title <size:22><b>System Architecture</b></size>\n
+
+cloud "TomTom\nFlow API" as API
+
+package "Data Pipeline" {
+  component "collect.py" as COL
+  component "preprocess.py" as PRE
+  component "train.py" as TRAIN
+}
+
+package "Storage" {
+  database "Raw CSV" as RAW
+  database "Features CSV" as FEAT
+  database "model.pkl" as MDL
+}
+
+package "Live Evaluation" {
+  component "evaluate_live.py" as EVAL
+  database "SQLite Queue" as DB
+  database "eval_log.csv" as LOG
+}
+
+component "Streamlit\nDashboard" as DASH #D5F5E3
+
+API --> COL
+COL --> RAW
+RAW --> PRE
+PRE --> FEAT
+FEAT --> TRAIN
+TRAIN --> MDL
+
+API --> EVAL
+MDL --> EVAL
+EVAL --> DB
+EVAL --> LOG
+
+MDL --> DASH
+LOG --> DASH
+API --> DASH
+
+@enduml

@@ -340,7 +340,7 @@ with tab1:
 
     col_btn, col_time = st.columns([1, 3])
     with col_btn:
-        fetch_live = st.button("Fetch live data", icon=":material/refresh:", type="primary")
+        fetch_live = st.button("🔄 Fetch live data", type="primary")
     with col_time:
         st.caption(f"Last updated: {datetime.now().strftime('%H:%M:%S')}")
 

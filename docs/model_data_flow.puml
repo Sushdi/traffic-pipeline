@@ -1,0 +1,50 @@
+@startuml Model_Data_Flow
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 2
+skinparam RoundCorner 10
+
+skinparam rectangle {
+  BackgroundColor #D6EAF8
+  BorderColor #2E86C1
+  FontColor #1A252F
+  FontStyle bold
+  FontSize 15
+}
+
+skinparam arrow {
+  FontSize 13
+  FontColor #555555
+}
+
+title <size:22><b>Model Data Flow</b></size>\n
+
+rectangle "TomTom API" as API #FDEBD0
+rectangle "collect.py" as COL
+rectangle "preprocess.py" as PRE
+rectangle "train.py" as TRAIN
+rectangle "model.pkl\n(LightGBM)" as MDL #F5EEF8
+rectangle "evaluate_live.py" as EVAL
+rectangle "SQLite Queue" as DB #FEF9E7
+rectangle "eval_log.csv" as LOG #FEF9E7
+rectangle "Streamlit Dashboard" as DASH #D5F5E3
+
+API -right-> COL : fetch flow data
+COL -right-> PRE : raw CSV
+PRE -right-> TRAIN : features + target_15m
+TRAIN -right-> MDL : best model
+
+API -down-> EVAL : ground truth
+MDL -down-> EVAL : load
+EVAL -right-> DB : store prediction\n(T + 15 min)
+DB -right-> EVAL : retrieve old\npredictions
+EVAL -down-> LOG : accuracy & drift
+
+MDL -down-> DASH
+LOG -down-> DASH
+API -down-> DASH : on-demand fetch
+
+@enduml
